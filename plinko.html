@@ -1,0 +1,700 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flashcard.com</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+html,body{
+    margin:0;
+    min-height:100%;
+    background:#080808;
+    color:#eee;
+    font-family:"Courier New",monospace;
+}
+
+body{
+    display:flex;
+    justify-content:center;
+    padding:20px;
+}
+
+.game{
+    width:min(1100px,100%);
+    text-align:center;
+}
+
+h1{
+    margin:5px 0 10px;
+    font-size:42px;
+    letter-spacing:3px;
+}
+
+.topbar{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:12px;
+    margin-bottom:14px;
+}
+
+.stat{
+    background:#111;
+    border:2px solid #333;
+    padding:10px 18px;
+    min-width:150px;
+}
+
+.stat span{
+    display:block;
+    font-size:12px;
+    color:#aaa;
+    margin-bottom:4px;
+}
+
+.stat strong{
+    font-size:22px;
+}
+
+.controls{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:14px;
+}
+
+.controls label{
+    font-weight:bold;
+}
+
+#bet{
+    width:150px;
+    padding:11px;
+    background:#111;
+    color:#fff;
+    border:2px solid #555;
+    font:inherit;
+    font-size:18px;
+    text-align:center;
+}
+
+button{
+    border:2px solid #555;
+    background:#151515;
+    color:#fff;
+    font:inherit;
+    font-weight:bold;
+    padding:11px 18px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#222;
+}
+
+button:disabled{
+    opacity:.4;
+    cursor:not-allowed;
+}
+
+#drop{
+    width:55px;
+    height:55px;
+    padding:0;
+    font-size:28px;
+}
+
+.message{
+    min-height:28px;
+    margin:8px 0 12px;
+    font-weight:bold;
+}
+
+.board-wrap{
+    overflow-x:auto;
+    padding:8px 0 18px;
+}
+
+.board{
+    position:relative;
+    width:1000px;
+    height:620px;
+    margin:auto;
+    background:
+        linear-gradient(#111,#0a0a0a);
+    border:3px solid #333;
+    overflow:hidden;
+}
+
+.board:before,
+.board:after{
+    content:"";
+    position:absolute;
+    top:0;
+    bottom:0;
+    width:3px;
+    background:#333;
+}
+
+.board:before{
+    left:18px;
+}
+
+.board:after{
+    right:18px;
+}
+
+.peg{
+    position:absolute;
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    background:#ddd;
+    transform:translate(-50%,-50%);
+    box-shadow:0 0 0 2px #444;
+}
+
+.ball{
+    position:absolute;
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    background:#fff;
+    transform:translate(-50%,-50%);
+    z-index:5;
+    display:none;
+}
+
+.slots{
+    width:1000px;
+    margin:auto;
+    display:grid;
+    grid-template-columns:repeat(27,1fr);
+    gap:2px;
+}
+
+.slot{
+    min-height:62px;
+    border:2px solid #333;
+    background:#111;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+    font-size:13px;
+    padding:4px;
+}
+
+.slot.jackpot{
+    background:#251400;
+    border-color:#8b5a00;
+}
+
+.slot.high{
+    background:#201500;
+}
+
+.slot.low{
+    background:#171717;
+}
+
+.legend{
+    margin-top:14px;
+    color:#999;
+    font-size:13px;
+}
+
+.rrr{
+    margin-top:15px;
+    color:#777;
+    font-size:13px;
+}
+
+.win{
+    animation:winFlash .5s ease 3;
+}
+
+@keyframes winFlash{
+    50%{
+        transform:scale(1.08);
+        border-color:#fff;
+    }
+}
+
+@media(max-width:700px){
+    h1{
+        font-size:30px;
+    }
+
+    .board-wrap,
+    .slots{
+        width:100%;
+    }
+
+    .board,
+    .slots{
+        min-width:1000px;
+    }
+
+    .board-wrap{
+        overflow-x:auto;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+    <h1>PLINKO</h1>
+
+    <div class="topbar">
+        <div class="stat">
+            <span>MONEY</span>
+            <strong id="money">$1.00</strong>
+        </div>
+
+        <div class="stat">
+            <span>LAST WIN</span>
+            <strong id="lastWin">$0.00</strong>
+        </div>
+
+        <div class="stat">
+            <span>BEST WIN</span>
+            <strong id="bestWin">$0.00</strong>
+        </div>
+    </div>
+
+    <div class="controls">
+        <label for="bet">BET:</label>
+
+        <input
+            id="bet"
+            type="number"
+            min="0.01"
+            step="0.01"
+            value="1.00"
+        >
+
+        <button type="button" id="minus">−</button>
+        <button type="button" id="plus">+</button>
+
+        <button type="button" id="drop" title="Drop ball">↓</button>
+    </div>
+
+    <div class="message" id="message">
+        Choose your bet and drop the ball.
+    </div>
+
+    <div class="board-wrap">
+        <div class="board" id="board">
+            <div class="ball" id="ball"></div>
+        </div>
+    </div>
+
+    <div class="slots" id="slots"></div>
+
+    <div class="legend">
+        Every peg is exactly 50% LEFT / 50% RIGHT.
+    </div>
+
+    <div class="rrr">
+        Press R R R to return to Flashcard.com
+    </div>
+
+</div>
+
+<script>
+const board = document.getElementById("board");
+const ball = document.getElementById("ball");
+const slots = document.getElementById("slots");
+const moneyEl = document.getElementById("money");
+const lastWinEl = document.getElementById("lastWin");
+const bestWinEl = document.getElementById("bestWin");
+const messageEl = document.getElementById("message");
+const betInput = document.getElementById("bet");
+const dropButton = document.getElementById("drop");
+const minusButton = document.getElementById("minus");
+const plusButton = document.getElementById("plus");
+
+const multipliers = [
+    1000,
+    250,
+    50,
+    50,
+    10,
+    10,
+    5,
+    5,
+    2,
+    2,
+    1,
+    1,
+    1,
+    0.5,
+    1,
+    1,
+    1,
+    2,
+    2,
+    5,
+    5,
+    10,
+    10,
+    50,
+    50,
+    250,
+    1000
+];
+
+const ROWS = 27;
+const TOP_Y = 55;
+const ROW_GAP = 19;
+const PEG_SPACING = 34;
+const CENTER_X = 500;
+
+let money = 1;
+let lastWin = 0;
+let bestWin = 0;
+let busy = false;
+let rrrCount = 0;
+let rrrTimer = null;
+
+function loadGame(){
+    try{
+        const save = JSON.parse(localStorage.getItem("flashcardPlinkoSave"));
+
+        if(save){
+            if(Number.isFinite(save.money) && save.money >= 0){
+                money = save.money;
+            }
+
+            if(Number.isFinite(save.bestWin) && save.bestWin >= 0){
+                bestWin = save.bestWin;
+            }
+        }
+    }catch(e){}
+}
+
+function saveGame(){
+    localStorage.setItem(
+        "flashcardPlinkoSave",
+        JSON.stringify({
+            money,
+            bestWin
+        })
+    );
+}
+
+function moneyText(value){
+    return "$" + Number(value).toFixed(2);
+}
+
+function updateUI(){
+    moneyEl.textContent = moneyText(money);
+    lastWinEl.textContent = moneyText(lastWin);
+    bestWinEl.textContent = moneyText(bestWin);
+}
+
+function createPegs(){
+    for(let row = 0; row < ROWS; row++){
+        const count = row + 1;
+        const y = TOP_Y + row * ROW_GAP;
+
+        const totalWidth = (count - 1) * PEG_SPACING;
+        const startX = CENTER_X - totalWidth / 2;
+
+        for(let i = 0; i < count; i++){
+            const peg = document.createElement("div");
+            peg.className = "peg";
+            peg.style.left = (startX + i * PEG_SPACING) + "px";
+            peg.style.top = y + "px";
+            board.appendChild(peg);
+        }
+    }
+}
+
+function createSlots(){
+    multipliers.forEach((multiplier,index)=>{
+        const slot = document.createElement("div");
+        slot.className = "slot";
+
+        if(multiplier >= 250){
+            slot.classList.add("jackpot");
+        }else if(multiplier >= 5){
+            slot.classList.add("high");
+        }else{
+            slot.classList.add("low");
+        }
+
+        slot.textContent = "×" + multiplier;
+        slot.dataset.index = index;
+
+        slots.appendChild(slot);
+    });
+}
+
+function clampBet(){
+    let value = Number(betInput.value);
+
+    if(!Number.isFinite(value) || value <= 0){
+        value = 0.01;
+    }
+
+    value = Math.min(value,money);
+
+    if(money >= 0.01){
+        value = Math.max(0.01,value);
+    }
+
+    betInput.value = value.toFixed(2);
+}
+
+function changeBet(amount){
+    let value = Number(betInput.value);
+
+    if(!Number.isFinite(value)){
+        value = 1;
+    }
+
+    value += amount;
+    value = Math.max(0.01,value);
+    value = Math.min(money,value);
+
+    betInput.value = value.toFixed(2);
+}
+
+function sleep(ms){
+    return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
+function setBall(x,y){
+    ball.style.left = x + "px";
+    ball.style.top = y + "px";
+}
+
+async function animateBall(path){
+    ball.style.display = "block";
+
+    if(window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+        const final = path[path.length - 1];
+        setBall(final.x,final.y);
+        return;
+    }
+
+    for(const point of path){
+        setBall(point.x,point.y);
+        await sleep(42);
+    }
+}
+
+async function dropBall(){
+    if(busy){
+        return;
+    }
+
+    clampBet();
+
+    const bet = Number(betInput.value);
+
+    if(!Number.isFinite(bet) || bet <= 0){
+        messageEl.textContent = "Enter a valid bet.";
+        return;
+    }
+
+    if(bet > money + 0.000001){
+        messageEl.textContent = "You don't have enough money.";
+        return;
+    }
+
+    busy = true;
+    dropButton.disabled = true;
+    minusButton.disabled = true;
+    plusButton.disabled = true;
+    betInput.disabled = true;
+
+    money -= bet;
+    lastWin = 0;
+    updateUI();
+    saveGame();
+
+    messageEl.textContent = "The ball is dropping...";
+
+    const path = [];
+
+    let currentX = CENTER_X;
+    let currentY = 25;
+
+    path.push({
+        x:currentX,
+        y:currentY
+    });
+
+    let leftMoves = 0;
+
+    for(let row = 0; row < ROWS; row++){
+        const count = row + 1;
+        const totalWidth = (count - 1) * PEG_SPACING;
+        const startX = CENTER_X - totalWidth / 2;
+
+        let nearest = Math.round((currentX - startX) / PEG_SPACING);
+
+        nearest = Math.max(0,Math.min(count - 1,nearest));
+
+        const pegX = startX + nearest * PEG_SPACING;
+        const pegY = TOP_Y + row * ROW_GAP;
+
+        path.push({
+            x:pegX,
+            y:pegY
+        });
+
+        const goLeft = Math.random() < 0.5;
+
+        if(goLeft){
+            leftMoves++;
+        }
+
+        const nextRowCount = row + 2;
+        const nextTotalWidth = (nextRowCount - 1) * PEG_SPACING;
+        const nextStartX = CENTER_X - nextTotalWidth / 2;
+
+        let nextIndex;
+
+        if(goLeft){
+            nextIndex = nearest;
+        }else{
+            nextIndex = nearest + 1;
+        }
+
+        nextIndex = Math.max(
+            0,
+            Math.min(nextRowCount - 1,nextIndex)
+        );
+
+        currentX = nextStartX + nextIndex * PEG_SPACING;
+        currentY = TOP_Y + (row + 1) * ROW_GAP;
+
+        path.push({
+            x:currentX,
+            y:currentY
+        });
+    }
+
+    const finalIndex = Math.max(
+        0,
+        Math.min(26,leftMoves)
+    );
+
+    const finalX = (finalIndex / 26) * 920 + 40;
+    const finalY = 585;
+
+    path.push({
+        x:finalX,
+        y:finalY
+    });
+
+    await animateBall(path);
+
+    const multiplier = multipliers[finalIndex];
+    const winnings = bet * multiplier;
+
+    money += winnings;
+    lastWin = winnings;
+
+    if(winnings > bestWin){
+        bestWin = winnings;
+    }
+
+    updateUI();
+    saveGame();
+
+    const slot = document.querySelector(
+        '.slot[data-index="' + finalIndex + '"]'
+    );
+
+    if(slot){
+        slot.classList.add("win");
+
+        setTimeout(()=>{
+            slot.classList.remove("win");
+        },1600);
+    }
+
+    if(multiplier >= 1000){
+        messageEl.textContent =
+            "JACKPOT! " + moneyText(winnings) + " at ×1000!";
+    }else{
+        messageEl.textContent =
+            "Landed on ×" + multiplier +
+            " — won " + moneyText(winnings) + "!";
+    }
+
+    ball.style.display = "none";
+
+    if(money < 0.01){
+        messageEl.textContent += " You're out of money.";
+    }
+
+    busy = false;
+    dropButton.disabled = false;
+    minusButton.disabled = false;
+    plusButton.disabled = false;
+    betInput.disabled = false;
+
+    clampBet();
+    updateUI();
+}
+
+dropButton.addEventListener("click",dropBall);
+
+minusButton.addEventListener("click",()=>{
+    changeBet(-0.50);
+});
+
+plusButton.addEventListener("click",()=>{
+    changeBet(0.50);
+});
+
+betInput.addEventListener("input",()=>{
+    let value = Number(betInput.value);
+
+    if(Number.isFinite(value)){
+        value = Math.max(0.01,value);
+        value = Math.min(money,value);
+        betInput.value = value.toFixed(2);
+    }
+});
+
+document.addEventListener("keydown",(event)=>{
+    if(event.key.toLowerCase() === "r"){
+        rrrCount++;
+
+        clearTimeout(rrrTimer);
+
+        rrrTimer = setTimeout(()=>{
+            rrrCount = 0;
+        },700);
+
+        if(rrrCount >= 3){
+            window.location.href = "index.html?games=true";
+        }
+    }
+});
+
+loadGame();
+createPegs();
+createSlots();
+updateUI();
+clampBet();
+```
+
