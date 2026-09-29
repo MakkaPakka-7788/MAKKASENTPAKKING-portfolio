@@ -95,6 +95,10 @@ h1 {
     cursor: pointer;
 }
 
+.bet button:hover {
+    background: #333;
+}
+
 .bet input {
     width: 125px;
     height: 38px;
@@ -118,6 +122,10 @@ h1 {
     font-size: 18px;
     font-weight: bold;
     cursor: pointer;
+}
+
+.drop:hover {
+    background: #ccc;
 }
 
 .drop:disabled {
@@ -159,6 +167,7 @@ h1 {
     background: #eee;
     border: 1px solid #aaa;
     transform: translate(-50%, -50%);
+    z-index: 3;
 }
 
 .ball {
@@ -177,6 +186,7 @@ h1 {
     top: 15px;
     left: 50%;
     transform: translateX(-50%);
+    color: #eee;
     font-size: 28px;
     z-index: 10;
 }
@@ -203,6 +213,7 @@ h1 {
 
 .slot.center .slotText {
     color: #fff;
+    font-size: 14px;
 }
 
 .slot.win {
@@ -218,6 +229,19 @@ h1 {
     text-align: center;
     color: #555;
     font-size: 11px;
+}
+
+@media(max-width:700px) {
+    .top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .drop {
+        width: 100%;
+        margin-left: 0;
+    }
 }
 </style>
 </head>
@@ -287,7 +311,9 @@ id="message"
 
 <div id="board">
 
-<div class="arrow">↓</div>
+<div class="arrow">
+↓
+</div>
 
 </div>
 
@@ -317,33 +343,33 @@ const message =
 document.getElementById("message");
 
 const multipliers = [
-1000,
-250,
-50,
-50,
-10,
-10,
-5,
-5,
-2,
-2,
-1,
-1,
-1,
-0.5,
-1,
-1,
-1,
-2,
-2,
-5,
-5,
-10,
-10,
-50,
-50,
-250,
-1000
+    1000,
+    250,
+    50,
+    50,
+    10,
+    10,
+    5,
+    5,
+    2,
+    2,
+    1,
+    1,
+    1,
+    1.5,
+    1,
+    1,
+    1,
+    2,
+    2,
+    5,
+    5,
+    10,
+    10,
+    50,
+    50,
+    250,
+    1000
 ];
 
 const ROWS = 27;
@@ -353,7 +379,9 @@ const ROW_SPACING = 25;
 const TOP_Y = 75;
 
 let savedMoney =
-localStorage.getItem("flashcardPlinkoMoney");
+localStorage.getItem(
+    "flashcardPlinkoMoney"
+);
 
 let money;
 
@@ -363,6 +391,7 @@ if (
     !Number.isFinite(Number(savedMoney))
 ) {
     money = 1;
+
     localStorage.setItem(
         "flashcardPlinkoMoney",
         "1.00"
@@ -421,12 +450,14 @@ function createPegs() {
             const peg =
                 document.createElement("div");
 
-            peg.className = "peg";
+            peg.className =
+                "peg";
 
             peg.style.left =
-                startX +
-                i * PEG_SPACING +
-                "px";
+                (
+                    startX +
+                    i * PEG_SPACING
+                ) + "px";
 
             peg.style.top =
                 y + "px";
@@ -442,8 +473,10 @@ function createSlots() {
 
     const startX =
         CENTER -
-        ((multipliers.length - 1) *
-        slotWidth) / 2;
+        (
+            (multipliers.length - 1) *
+            slotWidth
+        ) / 2;
 
     for (
         let i = 0;
@@ -454,16 +487,19 @@ function createSlots() {
         const slot =
             document.createElement("div");
 
-        slot.className = "slot";
+        slot.className =
+            "slot";
 
         if (i === 13) {
             slot.classList.add("center");
         }
 
-        slot.style.left =
+        const x =
             startX +
-            i * slotWidth +
-            "px";
+            i * slotWidth;
+
+        slot.style.left =
+            x + "px";
 
         slot.style.width =
             slotWidth + "px";
@@ -528,7 +564,8 @@ function createBall() {
     const ball =
         document.createElement("div");
 
-    ball.className = "ball";
+    ball.className =
+        "ball";
 
     board.appendChild(ball);
 
@@ -563,17 +600,21 @@ function moveBall(
                 progress *
                 (3 - 2 * progress);
 
-            ball.style.left =
+            const currentX =
                 fromX +
                 (toX - fromX) *
-                eased +
-                "px";
+                eased;
 
-            ball.style.top =
+            const currentY =
                 fromY +
                 (toY - fromY) *
-                eased +
-                "px";
+                eased;
+
+            ball.style.left =
+                currentX + "px";
+
+            ball.style.top =
+                currentY + "px";
 
             if (progress < 1) {
 
@@ -619,7 +660,9 @@ async function dropBall() {
     }
 
     dropping = true;
-    dropButton.disabled = true;
+
+    dropButton.disabled =
+        true;
 
     money -= bet;
 
@@ -676,11 +719,13 @@ async function dropBall() {
 
         const pegX =
             startX +
-            nearest * PEG_SPACING;
+            nearest *
+            PEG_SPACING;
 
         const pegY =
             TOP_Y +
-            row * ROW_SPACING;
+            row *
+            ROW_SPACING;
 
         await moveBall(
             ball,
@@ -694,13 +739,22 @@ async function dropBall() {
         x = pegX;
         y = pegY;
 
-        if (Math.random() < 0.5) {
-            x -= PEG_SPACING / 2;
+        const goLeft =
+            Math.random() < 0.5;
+
+        if (goLeft) {
+
+            x -=
+                PEG_SPACING / 2;
+
         } else {
-            x += PEG_SPACING / 2;
+
+            x +=
+                PEG_SPACING / 2;
         }
 
-        y += ROW_SPACING;
+        y +=
+            ROW_SPACING;
 
         await moveBall(
             ball,
@@ -711,11 +765,15 @@ async function dropBall() {
             65
         );
 
+        const slotStart =
+            CENTER - 520;
+
         finalPosition =
             Math.round(
-                (x -
-                (CENTER - 520)) /
-                40
+                (
+                    x -
+                    slotStart
+                ) / 40
             );
 
         finalPosition =
@@ -728,13 +786,19 @@ async function dropBall() {
             );
     }
 
+    const slotWidth = 40;
+
     const startX =
         CENTER -
-        (26 * 40) / 2;
+        (
+            (multipliers.length - 1) *
+            slotWidth
+        ) / 2;
 
     const targetX =
         startX +
-        finalPosition * 40;
+        finalPosition *
+        slotWidth;
 
     await moveBall(
         ball,
@@ -764,7 +828,8 @@ async function dropBall() {
             100
         ) / 100;
 
-    money += winnings;
+    money +=
+        winnings;
 
     updateMoney();
 
@@ -779,26 +844,35 @@ async function dropBall() {
             ".slot"
         );
 
-    if (slots[finalPosition]) {
+    if (
+        slots[finalPosition]
+    ) {
 
         slots[finalPosition]
             .classList.add("win");
 
-        setTimeout(function() {
+        setTimeout(
+            function() {
 
-            slots[finalPosition]
-                .classList.remove("win");
+                slots[finalPosition]
+                    .classList
+                    .remove("win");
 
-        }, 1000);
+            },
+            1000
+        );
     }
 
-    setTimeout(function() {
+    setTimeout(
+        function() {
 
-        if (ball.parentNode) {
-            ball.remove();
-        }
+            if (ball.parentNode) {
+                ball.remove();
+            }
 
-    }, 400);
+        },
+        400
+    );
 
     if (money > 0) {
 
@@ -810,7 +884,9 @@ async function dropBall() {
     }
 
     dropping = false;
-    dropButton.disabled = false;
+
+    dropButton.disabled =
+        false;
 }
 
 createPegs();
@@ -846,9 +922,8 @@ document.addEventListener(
 
             rCount = 0;
 
-            window.location.assign(
-                "index.html?games=true"
-            );
+            window.location.href =
+                "./index.html?games=true";
         }
     }
 );
