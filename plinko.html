@@ -128,12 +128,6 @@ h1 {
     background: #ccc;
 }
 
-.drop:disabled {
-    background: #444;
-    color: #777;
-    cursor: not-allowed;
-}
-
 .message {
     min-height: 25px;
     text-align: center;
@@ -184,7 +178,7 @@ h1 {
 
 .arrow {
     position: absolute;
-    top: 15px;
+    top: 17px;
     left: 50%;
     transform: translateX(-50%);
     color: #eee;
@@ -295,7 +289,6 @@ value="1"
 
 <button
 class="drop"
-id="dropButton"
 onclick="dropBall()"
 >
 ↓ DROP BALL
@@ -312,9 +305,7 @@ id="message"
 
 <div id="board">
 
-<div class="arrow">
-↓
-</div>
+<div class="arrow">↓</div>
 
 </div>
 
@@ -336,9 +327,6 @@ document.getElementById("money");
 
 const betInput =
 document.getElementById("bet");
-
-const dropButton =
-document.getElementById("dropButton");
 
 const message =
 document.getElementById("message");
@@ -373,19 +361,39 @@ const multipliers = [
     1000
 ];
 
-const ROWS = 27;
+const ROWS = 26;
+const FIRST_ROW_COUNT = 2;
+
 const CENTER = 560;
+
 const PEG_SPACING = 38;
 const ROW_SPACING = 25;
-const TOP_Y = 75;
+const TOP_Y = 85;
+
 const SLOT_WIDTH = 40;
+
 const MAX_BALLS = 20;
+
+const BALL_RADIUS = 9;
+
+const TRIANGLE_TOP_Y = 50;
+const TRIANGLE_BOTTOM_Y =
+    TOP_Y +
+    (ROWS - 1) *
+    ROW_SPACING;
+
+const TRIANGLE_TOP_HALF_WIDTH = 24;
+
+const TRIANGLE_BOTTOM_HALF_WIDTH =
+    ((FIRST_ROW_COUNT + ROWS - 1) - 1) *
+    PEG_SPACING /
+    2 +
+    20;
 
 const pegs = [];
 const balls = [];
 
 let money = 1;
-let dropping = false;
 
 const savedMoney =
     localStorage.getItem(
@@ -401,6 +409,7 @@ if (
 }
 
 function saveMoney() {
+
     localStorage.setItem(
         "flashcardPlinkoMoney",
         money.toFixed(2)
@@ -408,6 +417,7 @@ function saveMoney() {
 }
 
 function updateMoney() {
+
     moneyDisplay.textContent =
         "$" + money.toFixed(2);
 
@@ -422,7 +432,8 @@ function createPegs() {
         row++
     ) {
 
-        const count = row + 1;
+        const count =
+            FIRST_ROW_COUNT + row;
 
         const y =
             TOP_Y +
@@ -449,7 +460,8 @@ function createPegs() {
             const peg =
                 document.createElement("div");
 
-            peg.className = "peg";
+            peg.className =
+                "peg";
 
             peg.style.left =
                 x + "px";
@@ -509,7 +521,8 @@ function createSlots() {
             "slotText";
 
         text.textContent =
-            "×" + multipliers[i];
+            "×" +
+            multipliers[i];
 
         slot.appendChild(text);
 
@@ -517,44 +530,74 @@ function createSlots() {
     }
 }
 
-function changeBet(amount) {
+function getTriangleHalfWidth(y) {
 
-    let bet =
-        Number(betInput.value);
+    const usableHeight =
+        TRIANGLE_BOTTOM_Y -
+        TRIANGLE_TOP_Y;
 
-    if (!Number.isFinite(bet)) {
-        bet = 1;
-    }
+    const progress =
+        Math.max(
+            0,
+            Math.min(
+                1,
+                (y - TRIANGLE_TOP_Y) /
+                usableHeight
+            )
+        );
 
-    bet += amount;
-
-    if (bet < 0.01) {
-        bet = 0.01;
-    }
-
-    if (bet > money) {
-        bet = money;
-    }
-
-    betInput.value =
-        bet.toFixed(2);
+    return (
+        TRIANGLE_TOP_HALF_WIDTH +
+        (
+            TRIANGLE_BOTTOM_HALF_WIDTH -
+            TRIANGLE_TOP_HALF_WIDTH
+        ) *
+        progress
+    );
 }
 
-function getBet() {
+function keepInsideTriangle(ball) {
 
-    const bet =
-        Number(betInput.value);
+    const halfWidth =
+        getTriangleHalfWidth(
+            ball.y
+        );
+
+    const leftBoundary =
+        CENTER -
+        halfWidth +
+        ball.radius;
+
+    const rightBoundary =
+        CENTER +
+        halfWidth -
+        ball.radius;
 
     if (
-        !Number.isFinite(bet) ||
-        bet <= 0
+        ball.x <
+        leftBoundary
     ) {
-        return 0;
+
+        ball.x =
+            leftBoundary;
+
+        ball.vx =
+            Math.abs(ball.vx) *
+            0.8;
     }
 
-    return Math.round(
-        bet * 100
-    ) / 100;
+    if (
+        ball.x >
+        rightBoundary
+    ) {
+
+        ball.x =
+            rightBoundary;
+
+        ball.vx =
+            -Math.abs(ball.vx) *
+            0.8;
+    }
 }
 
 function createBall(bet) {
@@ -568,17 +611,51 @@ function createBall(bet) {
     board.appendChild(element);
 
     const ball = {
+
         element: element,
-        x: CENTER + (Math.random() - 0.5) * 8,
-        y: 42,
-        vx: (Math.random() - 0.5) * 0.8,
+
+        x: CENTER,
+
+        y: 48,
+
+        vx:
+            (Math.random() - 0.5) *
+            0.35,
+
         vy: 0,
-        radius: 9,
+
+        radius:
+            BALL_RADIUS,
+
         bet: bet,
+
         finished: false,
-        lastPeg: -1,
-        pathPosition: 13
+
+        lastPeg: -1
     };
+
+    const topHalfWidth =
+        getTriangleHalfWidth(
+            ball.y
+        );
+
+    ball.x =
+        CENTER;
+
+    ball.x =
+        Math.max(
+            CENTER -
+            topHalfWidth +
+            BALL_RADIUS,
+
+            Math.min(
+                CENTER +
+                topHalfWidth -
+                BALL_RADIUS,
+
+                ball.x
+            )
+        );
 
     element.style.left =
         ball.x + "px";
@@ -614,24 +691,34 @@ function finishBall(
 
     updateMoney();
 
-    if (slotIndex !== null) {
+    if (
+        slotIndex !== null
+    ) {
 
         const slots =
             document.querySelectorAll(
                 ".slot"
             );
 
-        if (slots[slotIndex]) {
+        if (
+            slots[slotIndex]
+        ) {
 
             slots[slotIndex]
-                .classList.add("win");
+                .classList
+                .add("win");
 
             setTimeout(
                 function() {
 
-                    slots[slotIndex]
-                        .classList
-                        .remove("win");
+                    if (
+                        slots[slotIndex]
+                    ) {
+
+                        slots[slotIndex]
+                            .classList
+                            .remove("win");
+                    }
 
                 },
                 600
@@ -647,19 +734,28 @@ function finishBall(
     } else {
 
         message.textContent =
-            "BALL LEFT PLINKO → ×1 → $" +
+            "×1 → $" +
             winnings.toFixed(2);
     }
 
-    if (ball.element.parentNode) {
+    if (
+        ball.element.parentNode
+    ) {
+
         ball.element.remove();
     }
 
     const index =
         balls.indexOf(ball);
 
-    if (index !== -1) {
-        balls.splice(index, 1);
+    if (
+        index !== -1
+    ) {
+
+        balls.splice(
+            index,
+            1
+        );
     }
 }
 
@@ -681,8 +777,10 @@ function getSlotIndex(x) {
 
     if (
         index < 0 ||
-        index >= multipliers.length
+        index >=
+        multipliers.length
     ) {
+
         return null;
     }
 
@@ -702,7 +800,10 @@ function updatePhysics() {
         const ball =
             balls[i];
 
-        if (ball.finished) {
+        if (
+            ball.finished
+        ) {
+
             continue;
         }
 
@@ -727,10 +828,12 @@ function updatePhysics() {
                 pegs[p];
 
             const dx =
-                ball.x - peg.x;
+                ball.x -
+                peg.x;
 
             const dy =
-                ball.y - peg.y;
+                ball.y -
+                peg.y;
 
             const distance =
                 Math.sqrt(
@@ -739,38 +842,47 @@ function updatePhysics() {
                 );
 
             const minimum =
-                ball.radius + 5.5;
+                ball.radius +
+                5.5;
 
             if (
-                distance < minimum &&
-                p !== ball.lastPeg
+                distance <
+                minimum &&
+                p !==
+                ball.lastPeg
             ) {
 
                 const safeDistance =
-                    distance || 0.001;
+                    distance ||
+                    0.001;
 
                 const nx =
-                    dx / safeDistance;
+                    dx /
+                    safeDistance;
 
                 const ny =
-                    dy / safeDistance;
+                    dy /
+                    safeDistance;
 
                 const overlap =
                     minimum -
                     safeDistance;
 
                 ball.x +=
-                    nx * overlap;
+                    nx *
+                    overlap;
 
                 ball.y +=
-                    ny * overlap;
+                    ny *
+                    overlap;
 
                 const speedAlongNormal =
                     ball.vx * nx +
                     ball.vy * ny;
 
                 if (
-                    speedAlongNormal < 0
+                    speedAlongNormal <
+                    0
                 ) {
 
                     ball.vx -=
@@ -785,17 +897,20 @@ function updatePhysics() {
                 }
 
                 if (
-                    Math.abs(ball.vx) <
-                    0.5
+                    Math.abs(
+                        ball.vx
+                    ) < 0.5
                 ) {
 
                     ball.vx +=
-                        Math.random() < 0.5
-                            ? -0.7
-                            : 0.7;
+                        Math.random() <
+                        0.5
+                        ? -0.7
+                        : 0.7;
                 }
 
-                ball.lastPeg = p;
+                ball.lastPeg =
+                    p;
             }
         }
 
@@ -805,22 +920,30 @@ function updatePhysics() {
             j++
         ) {
 
-            if (i === j) {
+            if (
+                i === j
+            ) {
+
                 continue;
             }
 
             const other =
                 balls[j];
 
-            if (other.finished) {
+            if (
+                other.finished
+            ) {
+
                 continue;
             }
 
             const dx =
-                ball.x - other.x;
+                ball.x -
+                other.x;
 
             const dy =
-                ball.y - other.y;
+                ball.y -
+                other.y;
 
             const distance =
                 Math.sqrt(
@@ -833,15 +956,19 @@ function updatePhysics() {
                 other.radius;
 
             if (
-                distance < minimum &&
-                distance > 0
+                distance <
+                minimum &&
+                distance >
+                0
             ) {
 
                 const nx =
-                    dx / distance;
+                    dx /
+                    distance;
 
                 const ny =
-                    dy / distance;
+                    dy /
+                    distance;
 
                 const overlap =
                     minimum -
@@ -876,11 +1003,14 @@ function updatePhysics() {
                     other.vy;
 
                 const relativeSpeed =
-                    relativeVX * nx +
-                    relativeVY * ny;
+                    relativeVX *
+                    nx +
+                    relativeVY *
+                    ny;
 
                 if (
-                    relativeSpeed < 0
+                    relativeSpeed <
+                    0
                 ) {
 
                     const impulse =
@@ -888,43 +1018,43 @@ function updatePhysics() {
                         0.85;
 
                     ball.vx +=
-                        nx * impulse;
+                        nx *
+                        impulse;
 
                     ball.vy +=
-                        ny * impulse;
+                        ny *
+                        impulse;
 
                     other.vx -=
-                        nx * impulse;
+                        nx *
+                        impulse;
 
                     other.vy -=
-                        ny * impulse;
+                        ny *
+                        impulse;
                 }
             }
         }
 
         if (
-            ball.x <
-            5 ||
-            ball.x >
-            1115
+            ball.y <
+            TRIANGLE_BOTTOM_Y
         ) {
 
-            finishBall(
-                ball,
-                1,
-                null
+            keepInsideTriangle(
+                ball
             );
-
-            continue;
         }
 
         if (
-            ball.y >
-            850
+            ball.y >=
+            TRIANGLE_BOTTOM_Y
         ) {
 
             const slotIndex =
-                getSlotIndex(ball.x);
+                getSlotIndex(
+                    ball.x
+                );
 
             if (
                 slotIndex === null
@@ -940,24 +1070,12 @@ function updatePhysics() {
 
                 finishBall(
                     ball,
-                    multipliers[slotIndex],
+                    multipliers[
+                        slotIndex
+                    ],
                     slotIndex
                 );
             }
-
-            continue;
-        }
-
-        if (
-            ball.y >
-            895
-        ) {
-
-            finishBall(
-                ball,
-                1,
-                null
-            );
 
             continue;
         }
@@ -977,7 +1095,8 @@ function updatePhysics() {
 function dropBall() {
 
     if (
-        balls.length >= MAX_BALLS
+        balls.length >=
+        MAX_BALLS
     ) {
 
         message.textContent =
@@ -989,7 +1108,9 @@ function dropBall() {
     const bet =
         getBet();
 
-    if (bet <= 0) {
+    if (
+        bet <= 0
+    ) {
 
         message.textContent =
             "ENTER A BET.";
@@ -997,7 +1118,9 @@ function dropBall() {
         return;
     }
 
-    if (bet > money) {
+    if (
+        bet > money
+    ) {
 
         message.textContent =
             "NOT ENOUGH MONEY.";
@@ -1005,11 +1128,14 @@ function dropBall() {
         return;
     }
 
-    money -= bet;
+    money -=
+        bet;
 
     updateMoney();
 
-    createBall(bet);
+    createBall(
+        bet
+    );
 
     message.textContent =
         "BALL DROPPED — " +
@@ -1017,21 +1143,47 @@ function dropBall() {
         "/20";
 }
 
+function getBet() {
+
+    const bet =
+        Number(
+            betInput.value
+        );
+
+    if (
+        !Number.isFinite(bet) ||
+        bet <= 0
+    ) {
+
+        return 0;
+    }
+
+    return Math.round(
+        bet * 100
+    ) / 100;
+}
+
 betInput.addEventListener(
     "change",
     function() {
 
         let bet =
-            Number(betInput.value);
+            Number(
+                betInput.value
+            );
 
         if (
             !Number.isFinite(bet) ||
             bet < 0.01
         ) {
+
             bet = 0.01;
         }
 
-        if (bet > money) {
+        if (
+            bet > money
+        ) {
+
             bet = money;
         }
 
@@ -1053,24 +1205,32 @@ document.addEventListener(
     function(e) {
 
         if (
-            e.key.toLowerCase() !== "r"
+            e.key.toLowerCase() !==
+            "r"
         ) {
+
             return;
         }
 
         rCount++;
 
-        clearTimeout(rTimer);
+        clearTimeout(
+            rTimer
+        );
 
         rTimer =
             setTimeout(
                 function() {
+
                     rCount = 0;
+
                 },
                 1000
             );
 
-        if (rCount >= 3) {
+        if (
+            rCount >= 3
+        ) {
 
             rCount = 0;
 
