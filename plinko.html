@@ -262,7 +262,7 @@ $1.00
 <h1>PLINKO</h1>
 
 <div class="info">
-50% chance left • 50% chance right • MAX 20 BALLS
+50% chance left • 50% chance right • MAX 100 BALLS
 </div>
 
 </div>
@@ -346,6 +346,8 @@ const multipliers = [
     1,
     0.75,
     0.5,
+    0.2,
+    0.5,
     0.75,
     1,
     1,
@@ -370,13 +372,14 @@ const PEG_SPACING = 38;
 const ROW_SPACING = 25;
 const TOP_Y = 85;
 
-const SLOT_WIDTH = 40;
+const SLOT_WIDTH = 38;
 
-const MAX_BALLS = 20;
+const MAX_BALLS = 100;
 
 const BALL_RADIUS = 9;
 
 const TRIANGLE_TOP_Y = 50;
+
 const TRIANGLE_BOTTOM_Y =
     TOP_Y +
     (ROWS - 1) *
@@ -501,7 +504,7 @@ function createSlots() {
         slot.className =
             "slot";
 
-        if (i === 13) {
+        if (i === 14) {
             slot.classList.add("center");
         }
 
@@ -634,29 +637,6 @@ function createBall(bet) {
         lastPeg: -1
     };
 
-    const topHalfWidth =
-        getTriangleHalfWidth(
-            ball.y
-        );
-
-    ball.x =
-        CENTER;
-
-    ball.x =
-        Math.max(
-            CENTER -
-            topHalfWidth +
-            BALL_RADIUS,
-
-            Math.min(
-                CENTER +
-                topHalfWidth -
-                BALL_RADIUS,
-
-                ball.x
-            )
-        );
-
     element.style.left =
         ball.x + "px";
 
@@ -674,7 +654,9 @@ function finishBall(
     slotIndex
 ) {
 
-    if (ball.finished) {
+    if (
+        ball.finished
+    ) {
         return;
     }
 
@@ -792,7 +774,8 @@ function updatePhysics() {
     const dt = 0.9;
 
     for (
-        let i = balls.length - 1;
+        let i =
+        balls.length - 1;
         i >= 0;
         i--
     ) {
@@ -816,7 +799,8 @@ function updatePhysics() {
         ball.y +=
             ball.vy * dt;
 
-        ball.vx *= 0.995;
+        ball.vx *=
+            0.995;
 
         for (
             let p = 0;
@@ -1100,7 +1084,7 @@ function dropBall() {
     ) {
 
         message.textContent =
-            "MAXIMUM 20 BALLS AT ONCE.";
+            "MAXIMUM 100 BALLS AT ONCE.";
 
         return;
     }
@@ -1140,7 +1124,7 @@ function dropBall() {
     message.textContent =
         "BALL DROPPED — " +
         balls.length +
-        "/20";
+        "/100";
 }
 
 function getBet() {
